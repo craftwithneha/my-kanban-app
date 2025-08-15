@@ -44,11 +44,10 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/Header.jsx";
 import Sidebar from "./components/Sidebar.jsx";
-import KanbanBoard from "./components/Kanbanboard.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import { useAuth } from "./contexts/AuthContext.jsx";
-
+import KanbanBoard from "./components/KanbanBoard.jsx";
 export default function App() {
   const { currentUser, loading } = useAuth();
 
@@ -71,7 +70,7 @@ export default function App() {
               </>
             ) : (
               <>
-                <Route path="/" element={<KanbanBoard />} />
+                <Route path="/" element={<KanbanBoard/>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             )}
