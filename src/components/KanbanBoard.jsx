@@ -87,23 +87,41 @@ export default function KanbanBoard() {
   };
 
   const handleDeleteTask = async ({ columnId, taskId }) => {
-  console.log("Deleting task", columnId, taskId); 
-  try {
-    await databases.deleteDocument(DB_ID, COL_ID, taskId);
+    console.log("Deleting task", columnId, taskId); 
+    
+    try {
+      // Optimistically update UI first for better UX
+      setColumns(prev => ({
+        ...prev,
+        [columnId]: {
+          ...prev[columnId],
+          tasks: prev[columnId].tasks.filter(t => t.$id !== taskId),
+        },
+      }));
 
-    setColumns(prev => ({
-      ...prev,
-      [columnId]: {
-        ...prev[columnId],
-        tasks: prev[columnId].tasks.filter(t => t.$id !== taskId),
-      },
-    }));
-
-    setDeleteTask(null);
-  } catch (err) {
-    console.error("Error deleting task:", err);
-  }
-};
+      // Then delete from database
+      await databases.deleteDocument(DB_ID, COL_ID, taskId);
+      
+      // Clear delete modal
+      setDeleteTask(null);
+      
+      console.log("Task deleted successfully");
+    } catch (err) {
+      console.error("Error deleting task:", err);
+      
+      // Revert UI change if delete failed
+      setColumns(prev => ({
+        ...prev,
+        [columnId]: {
+          ...prev[columnId],
+          tasks: [...prev[columnId].tasks, prev[columnId].tasks.find(t => t.$id === taskId)].filter(Boolean),
+        },
+      }));
+      
+      // Show error to user (you can add a toast notification here)
+      alert("Failed to delete task. Please try again.");
+    }
+  };
 
 
   const onDragEnd = async ({ active, over }) => {
@@ -177,6 +195,7 @@ export default function KanbanBoard() {
         <ConfirmDeleteModal
           onClose={() => setDeleteTask(null)}
           onConfirm={() => handleDeleteTask(deleteTask)}
+          taskTitle={columns[deleteTask.columnId]?.tasks.find(t => t.$id === deleteTask.taskId)?.title || "this task"}
         />
       )}
     </div>
