@@ -29,7 +29,7 @@ const Column = ({ column, onAddTask, onDeleteTask, users = [] }) => {
             <TaskCard
               task={task}
               users={users}
-              onDelete={() => onDeleteTask({ columnId: id, taskId: task.$id })}
+              onDelete={() => onDeleteTask({ columnId: id, taskId: task.$id, taskTitle: task.title })}
             />
           </DraggableCard>
         ))}

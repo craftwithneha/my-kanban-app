@@ -60,6 +60,13 @@ export default function KanbanBoard() {
     })();
   }, [currentUser?.$id]);
 
+  // Debug delete task state changes
+  useEffect(() => {
+    if (deleteTask) {
+      console.log("Delete task modal opened:", deleteTask);
+    }
+  }, [deleteTask]);
+
   const handleAddTask = async (taskPayload) => {
     try {
       const newTaskData = {
@@ -86,8 +93,8 @@ export default function KanbanBoard() {
     }
   };
 
-  const handleDeleteTask = async ({ columnId, taskId }) => {
-    console.log("Deleting task", columnId, taskId); 
+  const handleDeleteTask = async ({ columnId, taskId, taskTitle }) => {
+    console.log("Deleting task", columnId, taskId, taskTitle); 
     
     try {
       // Optimistically update UI first for better UX
@@ -195,7 +202,7 @@ export default function KanbanBoard() {
         <ConfirmDeleteModal
           onClose={() => setDeleteTask(null)}
           onConfirm={() => handleDeleteTask(deleteTask)}
-          taskTitle={columns[deleteTask.columnId]?.tasks.find(t => t.$id === deleteTask.taskId)?.title || "this task"}
+          taskTitle={deleteTask.taskTitle || "this task"}
         />
       )}
     </div>
