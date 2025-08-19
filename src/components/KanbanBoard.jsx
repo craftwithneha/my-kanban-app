@@ -8,7 +8,7 @@ import Column from "./Column";
 import AddTaskModal from "./AddTaskModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import { fetchAllUsers } from "../utils/fetchUsers";
-import { databases, ID } from "../appwrite"; // your appwrite utils
+import { databases, ID, client } from "../appwrite"; 
 import { useAuth } from "../contexts/AuthContext";
 import {Star} from "lucide-react"
 const DB_ID  = import.meta.env.VITE_APPWRITE_DATABASE_ID;
@@ -31,8 +31,13 @@ export default function KanbanBoard() {
   // Fetch users from backend
   useEffect(() => {
     (async () => {
-      const users = await fetchAllUsers();
-      setAllUsers(users);
+      try {
+        const users = await fetchAllUsers();
+        setAllUsers(users);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+        setAllUsers([]);
+      }
     })();
   }, []);
 
@@ -47,16 +52,75 @@ export default function KanbanBoard() {
       setColumns(grouped);
     } catch (err) {
       console.error("Failed to fetch tasks:", err);
+      // Keep initial columns if fetch fails
+      setColumns(initialColumns);
     }
   };
 
   useEffect(() => { fetchTasks(); }, []);
 
+  // Realtime updates for tasks (create/update/delete)
+  useEffect(() => {
+    let unsubscribe;
+    try {
+      unsubscribe = client.subscribe(
+        `databases.${DB_ID}.collections.${COL_ID}.documents`,
+        (event) => {
+          const doc = event.payload;
+          if (!doc || !doc.$id) return;
+
+          setColumns((prev) => {
+            // Create a fresh copy of columns with filtered tasks (remove this doc everywhere)
+            const next = Object.fromEntries(
+              Object.entries(prev).map(([key, col]) => [
+                key,
+                { ...col, tasks: (col.tasks || []).filter((t) => t.$id !== doc.$id) },
+              ])
+            );
+
+            const isCreate = event.events.some((e) => e.endsWith('.create'));
+            const isUpdate = event.events.some((e) => e.endsWith('.update'));
+
+            if (isCreate || isUpdate) {
+              const status = doc.status || 'todo';
+              if (!next[status]) {
+                next[status] = { id: status, title: status, tasks: [] };
+              }
+              next[status] = {
+                ...next[status],
+                tasks: [...(next[status].tasks || []), doc],
+              };
+            }
+            // For delete, we've already removed it from all columns
+            return next;
+          });
+        }
+      );
+    } catch (error) {
+      console.error("Failed to subscribe to realtime updates:", error);
+    }
+
+    return () => {
+      if (unsubscribe) {
+        try {
+          unsubscribe();
+        } catch (error) {
+          console.error("Error unsubscribing from realtime:", error);
+        }
+      }
+    };
+  }, []);
+
   // Refetch users when auth state changes so the creator shows up immediately
   useEffect(() => {
     (async () => {
-      const users = await fetchAllUsers();
-      setAllUsers(users);
+      try {
+        const users = await fetchAllUsers();
+        setAllUsers(users);
+      } catch (error) {
+        console.error("Failed to refetch users:", error);
+        // Don't clear existing users on refetch failure
+      }
     })();
   }, [currentUser?.$id]);
 
@@ -95,6 +159,13 @@ export default function KanbanBoard() {
 
   const handleDeleteTask = async ({ columnId, taskId, taskTitle }) => {
     console.log("Deleting task", columnId, taskId, taskTitle); 
+
+    // Cache the task being removed for reliable revert on failure
+    const removedTask = (() => {
+      const col = columns[columnId];
+      if (!col || !Array.isArray(col.tasks)) return null;
+      return col.tasks.find((t) => t.$id === taskId) || null;
+    })();
     
     try {
       // Optimistically update UI first for better UX
@@ -121,7 +192,9 @@ export default function KanbanBoard() {
         ...prev,
         [columnId]: {
           ...prev[columnId],
-          tasks: [...prev[columnId].tasks, prev[columnId].tasks.find(t => t.$id === taskId)].filter(Boolean),
+          tasks: removedTask
+            ? [...prev[columnId].tasks, removedTask]
+            : prev[columnId].tasks,
         },
       }));
       
@@ -149,6 +222,11 @@ export default function KanbanBoard() {
     const toCol   = columns[overColId];
     const task    = fromCol.tasks.find(t => t.$id === activeTaskId);
 
+    if (!task) {
+      console.error("Task not found for drag operation");
+      return;
+    }
+
     try {
       await databases.updateDocument(DB_ID, COL_ID, task.$id, { status: overColId });
       setColumns(prev => ({
@@ -158,6 +236,8 @@ export default function KanbanBoard() {
       }));
     } catch (err) {
       console.error("Error moving task:", err);
+      // Show user-friendly error message
+      alert("Failed to move task. Please try again.");
     }
   };
 
