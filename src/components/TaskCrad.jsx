@@ -21,11 +21,16 @@ export default function TaskCard({ task, onDelete, users = [] }) {
     return new Date(task.createdAt).toLocaleString();
   }, [task.createdAt]);
 
-  const handleDeleteClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onDelete(); // This will trigger the parent's delete modal
-  };
+ const handleDeleteClick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  onDelete({
+    columnId: task.status,   // column info bhej rahe hain
+    taskId: task.$id,        // unique task id
+    taskTitle: task.title,   // title for modal text
+  });
+};
+
 
   return (
     <div className="bg-gray-100 p-4 rounded-lg shadow-sm border flex justify-between items-start">
