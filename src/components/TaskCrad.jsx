@@ -21,13 +21,26 @@ export default function TaskCard({ task, onDelete, users = [] }) {
     return new Date(task.createdAt).toLocaleString();
   }, [task.createdAt]);
 
- const handleDeleteClick = (e) => {
+//  const handleDeleteClick = (e) => {
+//   e.preventDefault();
+//   e.stopPropagation();
+//   onDelete({
+//     columnId: task.status,   
+//     taskId: task.$id,        
+//     taskTitle: task.title,   
+//   });
+// };
+
+const handleDeleteClick = (e) => {
   e.preventDefault();
   e.stopPropagation();
+  if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+    e.nativeEvent.stopImmediatePropagation();
+  }
   onDelete({
-    columnId: task.status,   // column info bhej rahe hain
-    taskId: task.$id,        // unique task id
-    taskTitle: task.title,   // title for modal text
+    columnId: task.status,
+    taskId: task.$id,
+    taskTitle: task.title,
   });
 };
 
@@ -44,14 +57,25 @@ export default function TaskCard({ task, onDelete, users = [] }) {
         </div>
       </div>
 
-      <button 
+      {/* <button 
         onClick={handleDeleteClick}
         className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors duration-200 flex-shrink-0 touch-manipulation"
         title="Delete task"
         type="button"
       >
         <Trash2 size={18} />
-      </button>
+      </button> */}
+
+      <button
+  onClick={handleDeleteClick}
+  onMouseDown={(e) => e.stopPropagation()}
+  className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors duration-200 flex-shrink-0"
+  title="Delete task"
+  type="button"
+>
+  <Trash2 size={18} />
+</button>
+
     </div>
   );
 }
