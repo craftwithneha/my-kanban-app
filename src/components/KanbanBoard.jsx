@@ -2,7 +2,7 @@
 
 
 import React, { useState, useEffect } from "react";
-import { DndContext, closestCenter } from "@dnd-kit/core";
+import { DndContext, closestCenter, TouchSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import Column from "./Column";
 import AddTaskModal from "./AddTaskModal";
@@ -27,6 +27,21 @@ export default function KanbanBoard() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [currentColumnId, setCurrentColumnId] = useState(null);
   const [deleteTask, setDeleteTask] = useState(null);
+
+  // Configure sensors for better mobile support
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Minimum distance to start dragging
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250, // Delay before touch starts dragging
+        tolerance: 5, // Tolerance for touch movement
+      },
+    })
+  );
 
   // Fetch users from backend
   useEffect(() => {
@@ -167,6 +182,12 @@ export default function KanbanBoard() {
       return col.tasks.find((t) => t.$id === taskId) || null;
     })();
     
+    if (!removedTask) {
+      console.error("Task not found for deletion");
+      setDeleteTask(null);
+      return;
+    }
+    
     try {
       // Optimistically update UI first for better UX
       setColumns(prev => ({
@@ -177,11 +198,11 @@ export default function KanbanBoard() {
         },
       }));
 
+      // Clear delete modal immediately
+      setDeleteTask(null);
+
       // Then delete from database
       await databases.deleteDocument(DB_ID, COL_ID, taskId);
-      
-      // Clear delete modal
-      setDeleteTask(null);
       
       console.log("Task deleted successfully");
     } catch (err) {
@@ -192,13 +213,11 @@ export default function KanbanBoard() {
         ...prev,
         [columnId]: {
           ...prev[columnId],
-          tasks: removedTask
-            ? [...prev[columnId].tasks, removedTask]
-            : prev[columnId].tasks,
+          tasks: [...prev[columnId].tasks, removedTask],
         },
       }));
       
-      // Show error to user (you can add a toast notification here)
+      // Show error to user
       alert("Failed to delete task. Please try again.");
     }
   };
@@ -242,14 +261,18 @@ export default function KanbanBoard() {
   };
 
  return (
-    <div className="p-4  min-h-screen">
+    <div className="p-2 sm:p-4 min-h-screen touch-manipulation">
       {/* ✅ Heading added here */}
-      <h1 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-        Kanban Board <Star className="w-7 h-7 text-blue-400" />
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2">
+        Kanban Board <Star className="w-6 h-6 sm:w-7 sm:h-7 text-blue-400" />
       </h1>
 
-      <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <DndContext 
+        collisionDetection={closestCenter} 
+        onDragEnd={onDragEnd}
+        sensors={sensors}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4">
           {Object.values(columns).map(col => (
             <SortableContext
               key={col.id}

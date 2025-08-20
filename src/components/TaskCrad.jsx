@@ -41,8 +41,9 @@ export default function TaskCard({ task, onDelete, users = [] }) {
 
       <button 
         onClick={handleDeleteClick}
-        className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors duration-200 flex-shrink-0"
+        className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors duration-200 flex-shrink-0 touch-manipulation"
         title="Delete task"
+        type="button"
       >
         <Trash2 size={18} />
       </button>

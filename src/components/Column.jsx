@@ -25,7 +25,7 @@ const Column = ({ column, onAddTask, onDeleteTask, users = [] }) => {
 
       <div ref={setNodeRef} className='flex flex-col gap-3 min-h-[200px]'>
         {tasks.map(task => (
-          <DraggableCard key={task.$id} id={`${id}:${task.$id}`} columnId={id}>
+          <DraggableCard key={task.$id} id={`${id}:${task.$id}`}>
             <TaskCard
               task={task}
               users={users}

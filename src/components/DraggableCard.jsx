@@ -12,10 +12,18 @@ const DraggableCard = ({ id, children }) => {
     transition,
     opacity: isDragging ? 0.5 : 1,
     cursor: "grab",
+    touchAction: "none", // Prevents default touch behaviors
+    userSelect: "none", // Prevents text selection during drag
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...listeners}
+      className="touch-manipulation"
+    >
       {children}
     </div>
   );
