@@ -12,8 +12,8 @@ const DraggableCard = ({ id, children }) => {
     transition,
     opacity: isDragging ? 0.5 : 1,
     cursor: "grab",
-    touchAction: "none", // Prevents default touch behaviors
-    userSelect: "none", // Prevents text selection during drag
+    touchAction: "none", 
+    userSelect: "none", 
   };
 
   return (
